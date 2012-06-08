@@ -95,12 +95,6 @@ abstract class REST_Controller extends CI_Controller
 	 */
 	protected $_allow = TRUE;
 
-	/**
-	 * Determines if output compression is enabled
-	 * 
-	 * @var boolean
-	 */
-	protected $_zlib_oc = FALSE;
 
 	/**
 	 * List all supported methods, the first will be the default format
@@ -133,8 +127,6 @@ abstract class REST_Controller extends CI_Controller
 	{
 		parent::__construct();
 
-		$this->_zlib_oc = @ini_get('zlib.output_compression');
-
 		// Lets grab the config and get ready to party
 		$this->load->config('rest');
 
@@ -149,6 +141,9 @@ abstract class REST_Controller extends CI_Controller
 
 		// This library is bundled with REST_Controller 2.5+, but will eventually be part of CodeIgniter itself
 		$this->load->library('format');
+		
+		// Outputting responses using RestResponse class.
+		$this->load->library('restresponse');
 
 		// Try to find a format for the request (means we have a request body)
 		$this->request->format = $this->_detect_input_format();
@@ -335,84 +330,6 @@ abstract class REST_Controller extends CI_Controller
 
 		// And...... GO!
 		call_user_func_array(array($this, $controller_method), $arguments);
-	}
-
-	/**
-	 * Response
-	 *
-	 * Takes pure data and optionally a status code, then creates the response.
-	 *
-	 * @param array $data
-	 * @param null|int $http_code 
-	 */
-	public function response($data = array(), $http_code = null)
-	{
-		global $CFG;
-
-		// If data is empty and not code provide, error and bail
-		if (empty($data) && $http_code === null)
-		{
-			$http_code = 404;
-
-			//create the output variable here in the case of $this->response(array());
-			$output = $data;
-		}
-
-		// Otherwise (if no data but 200 provided) or some data, carry on camping!
-		else
-		{
-			// Is compression requested?
-			if ($CFG->item('compress_output') === TRUE && $this->_zlib_oc == FALSE)
-			{
-				if (extension_loaded('zlib'))
-				{
-					if (isset($_SERVER['HTTP_ACCEPT_ENCODING']) AND strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') !== FALSE)
-					{
-						ob_start('ob_gzhandler');
-					}
-				}
-			}
-			
-			is_numeric($http_code) OR $http_code = 200;
-
-			// If the format method exists, call and return the output in that format
-			if (method_exists($this, '_format_'.$this->response->format))
-			{
-				// Set the correct format header
-				header('Content-Type: '.$this->_supported_formats[$this->response->format]);
-
-				$output = $this->{'_format_'.$this->response->format}($data);
-			}
-
-			// If the format method exists, call and return the output in that format
-			elseif (method_exists($this->format, 'to_'.$this->response->format))
-			{
-				// Set the correct format header
-				header('Content-Type: '.$this->_supported_formats[$this->response->format]);
-
-				$output = $this->format->factory($data)->{'to_'.$this->response->format}();
-			}
-
-			// Format not supported, output directly
-			else
-			{
-				$output = $data;
-			}
-		}
-
-		header('HTTP/1.1: ' . $http_code);
-		header('Status: ' . $http_code);
-
-		// If zlib.output_compression is enabled it will compress the output,
-		// but it will not modify the content-length header to compensate for
-		// the reduction, causing the browser to hang waiting for more data.
-		// We'll just skip content-length in those cases.
-		if ( ! $this->_zlib_oc && ! $CFG->item('compress_output'))
-		{
-			header('Content-Length: ' . strlen($output));
-		}
-
-		exit($output);
 	}
 
 	/*
@@ -1047,20 +964,6 @@ abstract class REST_Controller extends CI_Controller
 		}
 
 		return $data;
-	}
-
-	// FORMATING FUNCTIONS ---------------------------------------------------------
-	// Many of these have been moved to the Format class for better separation, but these methods will be checked too
-
-	/**
-	 * Encode as JSONP
-	 * 
-	 * @param array $data The input data.
-	 * @return string The JSONP data string (loadable from Javascript). 
-	 */
-	protected function _format_jsonp($data = array())
-	{
-		return $this->get('callback').'('.json_encode($data).')';
 	}
 
 }
