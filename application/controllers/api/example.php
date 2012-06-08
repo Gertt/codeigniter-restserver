@@ -14,9 +14,7 @@
 */
 
 // This can be removed if you use __autoload() in config.php OR use Modular Extensions
-require APPPATH.'/libraries/REST_Controller.php';
-
-class Example extends REST_Controller
+class Example extends MY_REST_Controller
 {
 	function user_get()
     {
@@ -36,12 +34,12 @@ class Example extends REST_Controller
     	
         if($user)
         {
-            $this->response($user, 200); // 200 being the HTTP response code
+			echo new RestResponse($user, 200);
         }
 
         else
         {
-            $this->response(array('error' => 'User could not be found'), 404);
+			echo new RestResponse(array('error' => 'User could not be found'), 404);
         }
     }
     
@@ -50,7 +48,7 @@ class Example extends REST_Controller
         //$this->some_model->updateUser( $this->get('id') );
         $message = array('id' => $this->get('id'), 'name' => $this->post('name'), 'email' => $this->post('email'), 'message' => 'ADDED!');
         
-        $this->response($message, 200); // 200 being the HTTP response code
+		echo new RestResponse($message, 200); // 200 being the HTTP response code
     }
     
     function user_delete()
@@ -58,7 +56,7 @@ class Example extends REST_Controller
     	//$this->some_model->deletesomething( $this->get('id') );
         $message = array('id' => $this->get('id'), 'message' => 'DELETED!');
         
-        $this->response($message, 200); // 200 being the HTTP response code
+        echo new RestResponse($message, 200); // 200 being the HTTP response code
     }
     
     function users_get()
@@ -72,12 +70,12 @@ class Example extends REST_Controller
         
         if($users)
         {
-            $this->response($users, 200); // 200 being the HTTP response code
+			echo new RestResponse($users, 200); // 200 being the HTTP response code
         }
 
         else
         {
-            $this->response(array('error' => 'Couldn\'t find any users!'), 404);
+			echo new RestResponse(array('error' => 'Couldn\'t find any users!'), 404);
         }
     }
 
